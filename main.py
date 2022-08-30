@@ -19,11 +19,16 @@ def read_motos_data(brands_df: pd.DataFrame) -> pd.DataFrame:
     motos_df = motos_df[motos_df['id_ozon'].apply(lambda x: True if int(x[3:]) < 1000 else False)]
     motos_df['marca'] = motos_df['marca'].apply(lambda x: x if pd.isna(x) else str(x).upper())
     motos_df = pd.merge(motos_df, brands_df, how='left', left_on=['marca'], right_on=['name']).drop(columns=['name'])
+    motos_df = motos_df.replace({np.nan: None})
     return motos_df
 
 
 def get_uuid() -> str:
     return str(uuid.uuid4())
+
+
+def get_details(year: float, milage: float) -> dict:
+    return {'year': year, 'milage': milage}
 
 
 def get_mongo_data_df(motos_df: pd.DataFrame) -> pd.DataFrame:
@@ -42,6 +47,7 @@ def get_mongo_data_df(motos_df: pd.DataFrame) -> pd.DataFrame:
     mongo_data_df['country'] = motos_df['pais']
     mongo_data_df['plate'] = motos_df['placa']
     mongo_data_df['registrationCard'] = motos_df['num_tarjeta_circ']
+    mongo_data_df['details'] = motos_df.apply(lambda x: get_details(x['año '], x['kilometraje_aprox']), axis=1)
     mongo_data_df['_id'] = mongo_data_df.apply(lambda x: get_uuid(), axis=1)
     mongo_data_df = mongo_data_df.replace({np.nan: None})
     return mongo_data_df
@@ -58,5 +64,6 @@ def main():
     motos_df = read_motos_data(brands_df)
     mongo_data_df = get_mongo_data_df(motos_df)
     generate_mongo_data_json(mongo_data_df, 'mongoData')
+
 
 main()
